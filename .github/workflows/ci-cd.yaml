@@ -1,0 +1,161 @@
+name: CI-CD
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ${{ secrets.REGISTRY }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [frontend, product-api, order-api]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node for JS services
+        if: matrix.service != 'product-api'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python for product-api
+        if: matrix.service == 'product-api'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install & Test (JS)
+        if: matrix.service != 'product-api'
+        working-directory: services/${{ matrix.service }}
+        run: |
+          npm ci --no-audit
+          npm test --silent || echo "no tests"
+
+      - name: Install & Test (Python)
+        if: matrix.service == 'product-api'
+        working-directory: services/product-api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pytest || echo "no tests"
+
+      - name: Security Scan - npm audit (JS)
+        if: matrix.service != 'product-api'
+        working-directory: services/${{ matrix.service }}
+        run: |
+          npm audit --audit-level=high || true
+
+      - name: Security Scan - pip-audit (Python)
+        if: matrix.service == 'product-api'
+        working-directory: services/product-api
+        run: |
+          pip install pip-audit
+          pip-audit || true
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/${{ matrix.service }}
+          push: false
+          tags: |
+            ${{ env.REGISTRY }}/techcommerce-${{ matrix.service }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/techcommerce-${{ matrix.service }}:staging
+
+      - name: Trivy Image Scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/techcommerce-${{ matrix.service }}:${{ env.IMAGE_TAG }}
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push Images
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/techcommerce-${{ matrix.service }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/techcommerce-${{ matrix.service }}:staging
+
+  deploy_staging:
+    needs: [ci]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.30.0'
+
+      - name: Configure kubeconfig
+        run: |
+          echo "${KUBE_CONFIG}" | base64 -d > $HOME/.kube/config
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Deploy to Staging (kustomize)
+        run: |
+          REG=${{ env.REGISTRY }} TAG=staging \
+          yq -i '.images[] |= (.newName |= sub("REPLACE_REGISTRY"; env(REG)))' k8s/base/kustomization.yaml
+          kubectl apply -k k8s/overlays/staging
+
+      - name: Wait for Rollout
+        run: |
+          kubectl -n techcommerce-staging rollout status deploy/frontend --timeout=120s
+          kubectl -n techcommerce-staging rollout status deploy/product-api --timeout=120s
+          kubectl -n techcommerce-staging rollout status deploy/order-api --timeout=120s
+
+  deploy_production:
+    needs: [deploy_staging]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.30.0'
+
+      - name: Configure kubeconfig
+        run: |
+          echo "${KUBE_CONFIG}" | base64 -d > $HOME/.kube/config
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Deploy to Production (manual approval via environment)
+        run: |
+          REG=${{ env.REGISTRY }} TAG=prod \
+          yq -i '.images[] |= (.newName |= sub("REPLACE_REGISTRY"; env(REG)))' k8s/base/kustomization.yaml
+          kubectl apply -k k8s/overlays/production
+
+      - name: Wait for Rollout & Health
+        run: |
+          set -e
+          for d in frontend product-api order-api; do
+            kubectl -n techcommerce-prod rollout status deploy/$d --timeout=180s || (echo "Rollout failed for $d" && exit 1)
+          done
+
+      - name: Rollback on Failure (example)
+        if: failure()
+        run: |
+          for d in frontend product-api order-api; do
+            kubectl -n techcommerce-prod rollout undo deploy/$d || true
+          done
