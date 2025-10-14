@@ -1,0 +1,14 @@
+{
+  "name": "techcommerce-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "build": "echo 'static build placeholder'",
+    "test": "echo 'no frontend tests yet'"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "morgan": "^1.10.0"
+  }
+}
