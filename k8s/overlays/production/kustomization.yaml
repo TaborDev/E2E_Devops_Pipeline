@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: techcommerce-prod
+resources:
+  - ../../base
+  - namespace.yaml
+patches:
+  - target:
+      kind: ConfigMap
+      name: app-config
+    path: configmap-patch.yaml
+images:
+  - name: REPLACE_REGISTRY/techcommerce-frontend
+    newTag: prod
+  - name: REPLACE_REGISTRY/techcommerce-product-api
+    newTag: prod
+  - name: REPLACE_REGISTRY/techcommerce-order-api
+    newTag: prod
