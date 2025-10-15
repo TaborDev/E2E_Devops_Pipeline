@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: techcommerce
+data:
+  FRONTEND_API_BASE_URL: "http://product-api.techcommerce.svc.cluster.local:5000"
+  ORDER_API_BASE_URL: "http://order-api.techcommerce.svc.cluster.local:7000"
+  LOG_LEVEL: "info"

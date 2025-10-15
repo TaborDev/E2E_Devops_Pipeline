@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: techcommerce
+resources:
+  - configmap.yaml
+  - secrets.example.yaml # replace with secrets.yaml in real envs
+  - frontend-deploy.yaml
+  - frontend-svc.yaml
+  - product-api-deploy.yaml
+  - product-api-svc.yaml
+  - order-api-deploy.yaml
+  - order-api-svc.yaml
+  - hpa-product-api.yaml
+  # - ingress.yaml
+
+images:
+  - name: REPLACE_REGISTRY/techcommerce-frontend
+    newName: REPLACE_REGISTRY/techcommerce-frontend
+    newTag: latest
+  - name: REPLACE_REGISTRY/techcommerce-product-api
+    newName: REPLACE_REGISTRY/techcommerce-product-api
+    newTag: latest
+  - name: REPLACE_REGISTRY/techcommerce-order-api
+    newName: REPLACE_REGISTRY/techcommerce-order-api
+    newTag: latest
