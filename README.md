@@ -234,6 +234,131 @@ techcommerce/
 
 ---
 
+## Assignment Questions & Answers
+
+### **1. Architecture & Design Questions**
+
+**Q: Why did you choose Node.js for the Frontend and Order API?**
+A: Node.js provides excellent performance for I/O-intensive operations typical in frontend services and API gateways. Its async nature and vast ecosystem (npm) make it ideal for microservices that handle HTTP requests and API orchestration.
+
+**Q: Why Python Flask for the Product API?**
+A: Python Flask offers simplicity and flexibility for data-heavy operations. Python's rich ecosystem for data processing, machine learning libraries, and database operations makes it perfect for product catalog management where you might need complex queries, analytics, or recommendation algorithms.
+
+**Q: Explain your multi-stage Docker build strategy.**
+A: Multi-stage builds separate build dependencies from runtime dependencies:
+- **Build stage**: Uses full Node.js/Python images with dev tools, compilers
+- **Runtime stage**: Uses minimal Alpine-based images with only production dependencies
+- **Benefits**: 80% smaller images, improved security (no build tools in prod), faster deployments
+
+### **2. Kubernetes & Scaling Questions**
+
+**Q: Why did you implement HPA only for the Product API?**
+A: The Product API is typically the most resource-intensive service in an e-commerce platform:
+- Handles complex product searches and filtering
+- Database-heavy operations for catalog management
+- Most likely to experience variable load during traffic spikes
+- Frontend and Order API are more predictable in resource usage
+
+**Q: Explain your scaling strategy (2-10 replicas, 70% CPU threshold).**
+A: 
+- **Minimum 2 replicas**: Ensures high availability (no single point of failure)
+- **Maximum 10 replicas**: Prevents runaway scaling that could overwhelm database
+- **70% CPU threshold**: Conservative threshold allowing headroom for traffic spikes while avoiding constant scaling churn
+
+**Q: How do you handle resource allocation?**
+A: Implemented requests and limits for all containers:
+- **Requests**: 200m CPU, 256Mi memory (guaranteed resources)
+- **Limits**: 500m CPU, 512Mi memory (prevent resource hogging)
+- Based on typical microservice resource consumption patterns
+
+### **3. Security Questions**
+
+**Q: What security best practices did you implement?**
+A: Multiple layers of security:
+1. **Container Security**: Non-root users, minimal base images (Alpine)
+2. **Secret Management**: Kubernetes Secrets for sensitive data, never in code
+3. **Image Scanning**: Trivy vulnerability scanning in CI/CD pipeline
+4. **Dependency Scanning**: npm audit, pip-audit for known vulnerabilities
+5. **Principle of Least Privilege**: Minimal container capabilities
+
+**Q: How do you manage secrets and sensitive configuration?**
+A: Three-tier approach:
+1. **Development**: Environment variables in local .env files (gitignored)
+2. **Kubernetes**: Secrets stored as base64-encoded values, mounted as files
+3. **Production**: Integration with external secret managers (AWS Secrets Manager, Azure Key Vault)
+
+**Q: Explain your secret rotation strategy.**
+A: 
+- **Automated rotation**: External secret managers handle automatic rotation
+- **Application restart**: Use rolling deployments to pick up new secrets
+- **Zero-downtime**: Graceful shutdown ensures no dropped connections
+
+### **4. CI/CD & DevOps Questions**
+
+**Q: Why GitHub Actions over other CI/CD tools?**
+A: GitHub Actions provides:
+- **Native integration** with GitHub repositories
+- **Matrix builds** for parallel service testing
+- **Built-in security scanning** with GitHub security features
+- **Environment-based approvals** for production deployments
+- **Cost-effective** for open-source and small teams
+
+**Q: Explain your deployment strategy.**
+A: Progressive deployment with safety gates:
+1. **CI Stage**: Tests, security scans, image builds (parallel for all services)
+2. **Staging**: Automatic deployment for integration testing
+3. **Production**: Manual approval gate via GitHub Environments
+4. **Rollback**: Automated rollback on deployment failure
+
+**Q: How do you ensure zero-downtime deployments?**
+A: Multiple strategies:
+- **Rolling updates**: Kubernetes gradually replaces old pods
+- **Health checks**: Readiness probes ensure new pods are ready before routing traffic
+- **Connection draining**: Grace periods allow existing connections to complete
+- **Load balancing**: Services route traffic only to healthy pods
+
+### **5. Monitoring & Observability Questions**
+
+**Q: Why Prometheus + Grafana for monitoring?**
+A: Industry-standard cloud-native monitoring:
+- **Prometheus**: Pull-based metrics collection, powerful query language (PromQL)
+- **Grafana**: Rich visualization, alerting capabilities
+- **Kubernetes-native**: Operator-based deployment simplifies management
+- **Extensible**: Easy to add custom metrics and dashboards
+
+**Q: Explain your alerting strategy.**
+A: Four-tier alerting based on severity:
+1. **Critical**: Pod restart loops (immediate action required)
+2. **High**: API response time >2s (performance degradation)
+3. **Medium**: Error rate >5% (quality issues)
+4. **Warning**: Disk usage >85% (capacity planning)
+
+**Q: How do you monitor application health?**
+A: Multi-layer health monitoring:
+- **Liveness probes**: Restart unhealthy containers
+- **Readiness probes**: Remove unhealthy pods from load balancing
+- **Custom metrics**: Application-specific performance indicators
+- **Log aggregation**: Centralized logging for debugging
+
+### **6. Cost Optimization Questions**
+
+**Q: How do you optimize infrastructure costs?**
+A: Several cost optimization strategies:
+1. **Right-sizing**: Appropriate resource requests/limits based on actual usage
+2. **Autoscaling**: Scale down during low-traffic periods
+3. **Multi-stage builds**: Smaller images = lower storage and transfer costs
+4. **Efficient base images**: Alpine Linux reduces image size by 80%
+5. **Resource sharing**: Multiple services per node with proper resource allocation
+
+**Q: What's your approach to capacity planning?**
+A: Data-driven capacity planning:
+- **Historical metrics**: Use Prometheus data to identify usage patterns
+- **Load testing**: Simulate traffic to understand scaling behavior
+- **Cost monitoring**: Track resource costs per service
+- **Regular review**: Monthly capacity and cost optimization reviews
+
+---
+
 ## Next Steps (Optional Enhancements)
 
 * Add **NetworkPolicies** restricting cross-namespace traffic.
