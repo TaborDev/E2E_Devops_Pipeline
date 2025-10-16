@@ -266,10 +266,11 @@ A:
 - **70% CPU threshold**: Conservative threshold allowing headroom for traffic spikes while avoiding constant scaling churn
 
 **Q: How do you handle resource allocation?**
-A: Implemented requests and limits for all containers:
-- **Requests**: 200m CPU, 256Mi memory (guaranteed resources)
-- **Limits**: 500m CPU, 512Mi memory (prevent resource hogging)
-- Based on typical microservice resource consumption patterns
+A: Implemented requests and limits tailored per service:
+- **Frontend/Order API**: requests(100m CPU, 128Mi memory), limits(500m CPU, 256Mi memory)
+- **Product API**: requests(200m CPU, 256Mi memory), limits(1000m CPU, 512Mi memory)
+- Product API gets more resources as it's the most data-intensive service
+- Based on actual service resource consumption patterns and workload requirements
 
 ### **3. Security Questions**
 
