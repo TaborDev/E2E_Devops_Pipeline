@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: product-api
-  namespace: techcommerce
+  namespace: techcommerce-staging
 spec:
   replicas: 2
   selector:
@@ -16,7 +16,7 @@ spec:
         runAsUser: 10001
       containers:
         - name: product-api
-          image: techcommerce-product-api:test
+          image: product-api:dev
           imagePullPolicy: Never
           ports:
             - containerPort: 5000

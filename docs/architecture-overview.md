@@ -83,29 +83,38 @@ The TechCommerce platform follows a microservices architecture with three main s
    - **Rollback**: Automated on deployment failure
 
 #### Security Integration
-- **SAST**: Code security scanning
+- **SAST**: Code security scanning. No SAST tools (like SonarQube, Semgrep, or CodeQL) configured in the CI/CD workflow
 - **Container scanning**: Trivy for vulnerabilities
-- **Dependency scanning**: npm audit, pip-audit
+- **Dependency scanning**: npm audit, pip-audit. Partially implemented in npm audit and pip-audit
 - **Runtime security**: Non-root containers, resource limits
 
-### Monitoring & Observability
+## Monitoring & Observability
 
-#### Metrics Collection
-- **Prometheus** for metrics collection
-- **kube-prometheus-stack** for easy setup
-- **Node Exporter** for system metrics
-- **Service monitors** for application metrics
+### Current Implementation Status
 
-#### Alerting Rules
-1. **Pod Restarts**: >3 restarts in 10 minutes
-2. **API Response Time**: >2s 95th percentile for 5 minutes
-3. **Error Rate**: >5% 5xx responses for 5 minutes
-4. **Disk Usage**: >85% for 10 minutes
+**Installed Components**:
+- Prometheus (via kube-prometheus-stack)
+- Grafana (via kube-prometheus-stack)
+- Basic Kubernetes metrics collection
 
-#### Dashboards
-- **Grafana** for visualization
-- Pre-built dashboards for Kubernetes metrics
-- Custom dashboards for application-specific metrics
+**Partially Implemented**:
+- **Grafana Dashboards**: Only default dashboards available
+- **Node Exporter**: Installed but not verified
+- **Service Monitors**: Basic setup, needs application-specific configuration
+
+**Not Yet Implemented**:
+- Custom alert rules for pod restarts, API response times, etc.
+- Application-specific dashboards
+- Log aggregation (Loki stack attempted but not fully configured)
+- Distributed tracing (OpenTelemetry)
+
+### How to Access
+
+1. **Grafana Dashboard**:
+   ```bash
+   kubectl port-forward -n monitoring svc/kps-grafana 3000:80
+   # Open http://localhost:3000
+   # Default credentials: admin/prom-operator
 
 ### Networking
 
@@ -114,64 +123,33 @@ The TechCommerce platform follows a microservices architecture with three main s
 - ClusterIP services for east-west traffic
 - ConfigMap configuration for service endpoints
 
-#### External Access
-- Optional Ingress for external traffic
-- Load balancer or NodePort for development
-- TLS termination at ingress level
-
 ### Security Architecture
 
 #### Container Security
 - Non-root users (UID 10001)
 - Read-only root filesystems where possible
-- Minimal base images (Alpine, Distroless)
-- Regular vulnerability scanning
 
 #### Kubernetes Security
 - Namespace isolation
-- RBAC for service accounts
-- Network policies (recommended for production)
-- Pod security contexts
+- RBAC for service accounts : Only default roles in use
 
 #### Secrets Management
 - Kubernetes Secrets for basic needs
-- External Secrets Operator (recommended for production)
-- Sealed Secrets for GitOps workflows
-- Rotation policies and monitoring
 
 ### Scalability & Performance
 
 #### Horizontal Scaling
 - HPA based on CPU utilization
-- Custom metrics scaling (future enhancement)
 - Cluster autoscaler for node scaling
 
 #### Resource Management
 - CPU/Memory requests and limits
 - Quality of Service classes
 - Priority classes for critical workloads
-
-#### Caching Strategy
-- Application-level caching
-- CDN integration for static assets
-- Database query optimization
-
-### Disaster Recovery
-
-#### Backup Strategy
-- Persistent volume snapshots
-- Configuration backup via GitOps
-- Database backup procedures
-
-#### High Availability
-- Multi-zone deployments
-- Pod anti-affinity rules
 - Health checks and automatic recovery
 
 #### Recovery Procedures
-- Rollback mechanisms via kubectl
-- Blue-green deployment capability
-- Canary deployment patterns
+- Rollback mechanisms via kubectl [Maual only]
 
 ### Technology Stack Summary
 

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: order-api
-  namespace: techcommerce
+  namespace: techcommerce-staging
 spec:
   replicas: 2
   selector:
@@ -16,7 +16,7 @@ spec:
         runAsUser: 10001
       containers:
         - name: order-api
-          image: techcommerce-order-api:test
+          image: order-api:dev
           imagePullPolicy: Never
           ports:
             - containerPort: 7000
