@@ -136,6 +136,15 @@ techcommerce/
 ├─ docs/
 │  ├─ architecture-overview.md
 │  └─ troubleshooting.md
+├─ terraform/
+│  ├─ main.tf
+│  ├─ variables.tf
+│  ├─ outputs.tf
+│  └─ modules/
+│     ├─ dynamodb/
+│     │  └─ main.tf
+│     └─ s3/
+│        └─ main.tf
 ├─ k8s/
 │  ├─ base/
 │  │  ├─ namespace.yaml
@@ -173,16 +182,28 @@ techcommerce/
 │  ├─ product-api/
 │  │  ├─ Dockerfile
 │  │  ├─ requirements.txt
-│  │  ├─ app.py
-│  │  └─ tests/test_health.py
+│  │  ├─ app/
+│  │  │  ├─ __init__.py
+│  │  │  ├─ routes/
+│  │  │  │  └─ products.py
+│  │  │  └─ services/
+│  │  │     └─ product_service.py
+│  │  └─ app.py
 │  └─ order-api/
 │     ├─ Dockerfile
 │     ├─ package.json
-│     ├─ src/index.js
-│     └─ src/health.js
-└─ security/
-   ├─ trivyignore
-   └─ .npmauditrc.json
+│     ├─ src/
+│     │  ├─ controllers/
+│     │  │  └─ orderController.js
+│     │  ├─ services/
+│     │  │  └─ storage.js
+│     │  ├─ index.js
+│     │  └─ health.js
+│     └─ .env.example
+├─ security/
+│  ├─ trivyignore
+│  └─ .npmauditrc.json
+└─ .gitignore
 ```
 
 ---
@@ -197,15 +218,39 @@ techcommerce/
    # Edit secrets.yaml with real values
    ```
 
-2. **Build and test locally:**
+2. **Setup LocalStack if Not running:**
+   ```bash
+   # Start LocalStack
+   docker-compose -f local/docker-compose.yml up -d
+
+   #Verify LocalStack is running
+   curl http://localhost:4566/health
+```
+
+3. **Build and test locally:**
+```bash
+   cd terraform
+   terraform init
+   terraform apply -auto-approve
+
+   # Verify resources
+   aws --endpoint-url=http://localhost:4566 s3 ls
+   aws --endpoint-url=http://localhost:4566 dynamodb list-tables
+```
+
+4. **Build and test locally:**
+
    ```bash
    # Test each service
    cd services/frontend && npm ci && npm test
    cd ../product-api && pip install -r requirements.txt && pytest
    cd ../order-api && npm ci && npm test
-   ```
 
-3. **Deploy to Kubernetes:**
+   # Start services locally
+   cd ../../services/order-api && npm start &  # Runs on port 3001
+   cd ../product-api && python app.py &       # Runs on port 5001
+
+5. **Deploy to Kubernetes:**
    ```bash
    # Setup monitoring first
    helm install kps prometheus-community/kube-prometheus-stack -n monitoring --create-namespace
@@ -217,7 +262,7 @@ techcommerce/
    kubectl apply -k k8s/overlays/production
    ```
 
-4. **Setup CI/CD:**
+6. **Setup CI/CD:**
    - Configure GitHub secrets: `REGISTRY`, `REGISTRY_USERNAME`, `REGISTRY_PASSWORD`, `KUBE_CONFIG`
    - Push changes to trigger pipeline
    - Use GitHub Environments for production approval gate
