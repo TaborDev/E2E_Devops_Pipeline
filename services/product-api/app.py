@@ -1,24 +1,12 @@
-from flask import Flask, jsonify
-import os, time
+from app import create_app
+import os
+from dotenv import load_dotenv
 
-app = Flask(__name__)
+# Load environment variables
+load_dotenv()
 
-@app.get('/healthz')
-def health():
-    return jsonify({ 'status': 'ok' })
-
-@app.get('/livez')
-def live():
-    return jsonify({ 'live': True })
-
-@app.get('/products')
-def products():
-    # placeholder data
-    return jsonify([
-        { 'id': 1, 'name': 'Widget', 'price': 9.99 },
-        { 'id': 2, 'name': 'Gadget', 'price': 14.99 }
-    ])
+app = create_app()
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=os.getenv('FLASK_DEBUG', 'false').lower() == 'true')

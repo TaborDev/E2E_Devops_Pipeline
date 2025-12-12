@@ -1,15 +1,24 @@
 import express from 'express';
-import morgan from 'morgan';
-import { healthRoutes } from './health.js';
+import { createOrder, getOrderById } from './controllers/orderController.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const app = express();
-app.use(morgan('tiny'));
+const PORT = process.env.PORT || 3000;
 
-app.get('/orders', (_, res) => {
-  res.json([{ id: 'ord_1', total: 24.99 }]);
+// Middleware
+app.use(express.json());
+
+// Routes
+app.post('/orders', createOrder);
+app.get('/orders/:id', getOrderById);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
 });
 
-healthRoutes(app);
-
-const port = process.env.PORT || 7000;
-app.listen(port, () => console.log(`Order API on :${port}`));
+// Start server
+app.listen(PORT, () => {
+  console.log(`Order API running on port ${PORT}`);
+});

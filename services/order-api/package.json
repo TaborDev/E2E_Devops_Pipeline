@@ -1,13 +1,20 @@
 {
   "name": "techcommerce-order-api",
   "version": "1.0.0",
+  "description": "Order API for TechCommerce",
   "type": "module",
+  "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "test": "echo 'no tests yet'"
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "morgan": "^1.10.0"
+    "aws-sdk": "^2.1495.0",
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
